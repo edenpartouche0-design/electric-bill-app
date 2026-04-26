@@ -18,7 +18,7 @@ const numberFormatter = new Intl.NumberFormat("he-IL", {
 });
 
 const emptyFields = {
-  pricePerKwh: "",
+  pricePerKwhAgorot: "",
   fixedCharge: "",
   powerCharge: "",
   vatRate: "",
@@ -100,7 +100,7 @@ function App() {
           <span className="eyebrow">PDF + Manual Override</span>
           <h1>מחשבון חשמל חכם לדיירים</h1>
           <p>
-            העלה חשבונית חשמל, חלץ אוטומטית תעריף לקוט"ש, תשלומים קבועים ומע"מ, תקן ערכים ידנית במידת הצורך
+            העלה חשבונית חשמל, חלץ אוטומטית מחיר לקוט"ש באגורות, תשלומים קבועים ומע"מ, תקן ערכים ידנית במידת הצורך
             וקבל חישוב מדויק של חלק הדייר בתשלום.
           </p>
         </div>
@@ -131,11 +131,11 @@ function App() {
 
           <div className="fields-grid">
             ${renderNumberField({
-              label: 'תעריף לקוט"ש ללא מע"מ',
-              value: fields.pricePerKwh,
-              onInput: (value) => updateField("pricePerKwh", value),
+              label: 'מחיר לקוט"ש באגורות',
+              value: fields.pricePerKwhAgorot,
+              onInput: (value) => updateField("pricePerKwhAgorot", value),
               placeholder: "0.00",
-              hint: buildFieldHint("pricePerKwh", fields, extractedFields, "₪ לקוט\"ש"),
+              hint: buildFieldHint("pricePerKwhAgorot", fields, extractedFields, "אג׳ לקוט\"ש"),
             })}
 
             ${renderNumberField({
@@ -239,7 +239,7 @@ function App() {
             <h3>לוגיקת החישוב</h3>
             <ol>
               <li>צריכה = קריאה נוכחית פחות קריאה קודמת.</li>
-              <li>עלות שימוש = צריכה כפול מחיר לקוט"ש.</li>
+              <li>עלות שימוש = צריכה כפול מחיר לקוט"ש באגורות, ואז המרה לשקלים.</li>
               <li>דמי שימוש יחסיים = (תשלום קבוע + תשלום הספק) חלקי 2.</li>
               <li>מע"מ מחושב על סכום עלות השימוש ודמי השימוש היחסיים.</li>
             </ol>
@@ -294,11 +294,15 @@ function parseInvoiceText(rawText) {
   const notes = [];
 
   const values = {
-    pricePerKwh: findNumberNearLabels(text, [
-      'תעריף לקוט"ש',
-      "תעריף לקוטש",
+    pricePerKwhAgorot: findNumberNearLabels(text, [
+      'מחיר לקוט"ש באגורות',
+      "מחיר לקוטש באגורות",
+      'מחיר לקו"טש באגורות',
+      "מחיר לקוט''ש באגורות",
       'מחיר לקוט"ש',
       "מחיר לקוטש",
+      'תעריף לקוט"ש',
+      "תעריף לקוטש",
       "עלות אנרגיה",
     ]),
     fixedCharge: findNumberNearLabels(text, [
@@ -319,8 +323,8 @@ function parseInvoiceText(rawText) {
     ]),
   };
 
-  if (!values.pricePerKwh) {
-    notes.push('לא זוהה תעריף לקוט"ש באופן בטוח.');
+  if (!values.pricePerKwhAgorot) {
+    notes.push('לא זוהה מחיר לקוט"ש באגורות באופן בטוח.');
   }
 
   if (!values.fixedCharge) {
@@ -403,7 +407,7 @@ function findPercentNearLabels(text, labels) {
 }
 
 function calculateBill(fields) {
-  const pricePerKwh = parseInputNumber(fields.pricePerKwh);
+  const pricePerKwhAgorot = parseInputNumber(fields.pricePerKwhAgorot);
   const fixedCharge = parseInputNumber(fields.fixedCharge);
   const powerCharge = parseInputNumber(fields.powerCharge);
   const vatRate = parseInputNumber(fields.vatRate);
@@ -417,8 +421,8 @@ function calculateBill(fields) {
     errors.push("קריאת המונה הנוכחית חייבת להיות גדולה או שווה לקריאה הקודמת.");
   }
 
-  if (!Number.isFinite(pricePerKwh)) {
-    errors.push('יש להזין תעריף לקוט"ש תקין.');
+  if (!Number.isFinite(pricePerKwhAgorot)) {
+    errors.push('יש להזין מחיר לקוט"ש באגורות.');
   }
 
   if (!Number.isFinite(fixedCharge)) {
@@ -451,7 +455,7 @@ function calculateBill(fields) {
   }
 
   const consumption = roundToTwo(currentReading - previousReading);
-  const usageCost = roundToTwo(consumption * pricePerKwh);
+  const usageCost = roundToTwo(consumption * convertAgorotToShekels(pricePerKwhAgorot));
   const relativeFixedShare = roundToTwo((fixedCharge + powerCharge) / 2);
   const subtotal = roundToTwo(usageCost + relativeFixedShare);
   const vatAmount = roundToTwo(subtotal * (vatRate / 100));
@@ -514,6 +518,10 @@ function formatCurrency(value) {
 
 function formatStoredNumber(value) {
   return String(roundToTwo(value));
+}
+
+function convertAgorotToShekels(value) {
+  return value / 100;
 }
 
 function normalizeNumericString(value) {
