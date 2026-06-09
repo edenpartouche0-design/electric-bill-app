@@ -1,0 +1,19 @@
+{
+  "name": "smart-electric-bill-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart RTL electric bill calculator with PDF extraction and family profiles.",
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "dev": "npx serve .",
+    "start": "npx serve dist"
+  },
+  "keywords": [
+    "electric-bill",
+    "pdf",
+    "calculator",
+    "hebrew",
+    "rtl"
+  ],
+  "license": "UNLICENSED"
+}
