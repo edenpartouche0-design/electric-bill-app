@@ -21,6 +21,7 @@ const emptyFields = {
   pricePerKwhAgorot: "",
   fixedCharge: "",
   powerCharge: "",
+  tenantCount: "2",
   vatRate: DEFAULT_VAT_RATE,
   currentReading: "",
   previousReading: "",
@@ -304,6 +305,14 @@ function App() {
             })}
 
             ${renderNumberField({
+              label: "מספר דיירים",
+              value: fields.tenantCount,
+              onInput: (value) => updateField("tenantCount", value),
+              placeholder: "2",
+              hint: "הסכום של תשלום קבוע ותשלום בגין הספק יחולק במספר הזה",
+            })}
+
+            ${renderNumberField({
               label: "אחוז מע\"מ",
               value: fields.vatRate,
               onInput: (value) => updateField("vatRate", value),
@@ -314,7 +323,7 @@ function App() {
             ${renderReadOnlyField({
               label: "חישוב חלק יחסי תשלומים קבועים",
               value: relativeFixedSharePreview,
-              hint: "מחצית מהסכום של תשלום קבוע ותשלום בגין הספק",
+              hint: "תשלום קבוע ותשלום בגין הספק מחולקים לפי מספר הדיירים",
             })}
           </div>
 
@@ -429,7 +438,7 @@ function App() {
             <ol>
               <li>צריכה = קריאה נוכחית פחות קריאה קודמת.</li>
               <li>עלות שימוש = צריכה כפול מחיר לקוט"ש באגורות, ואז המרה לשקלים.</li>
-              <li>דמי שימוש יחסיים = (תשלום קבוע + תשלום הספק) חלקי 2.</li>
+              <li>דמי שימוש יחסיים = (תשלום קבוע + תשלום הספק) חלקי מספר הדיירים.</li>
               <li>מע"מ מחושב על סכום עלות השימוש ודמי השימוש היחסיים.</li>
             </ol>
           </article>
@@ -949,6 +958,7 @@ function calculateBill(fields) {
   const pricePerKwhAgorot = parseInputNumber(fields.pricePerKwhAgorot);
   const fixedCharge = parseInputNumber(fields.fixedCharge);
   const powerCharge = parseInputNumber(fields.powerCharge);
+  const tenantCount = parseInputNumber(fields.tenantCount);
   const vatRate = parseInputNumber(fields.vatRate);
   const currentReading = parseInputNumber(fields.currentReading);
   const previousReading = parseInputNumber(fields.previousReading);
@@ -970,6 +980,10 @@ function calculateBill(fields) {
 
   if (!Number.isFinite(powerCharge)) {
     errors.push("יש להזין תשלום בגין הספק תקין.");
+  }
+
+  if (!Number.isFinite(tenantCount) || tenantCount < 1) {
+    errors.push("יש להזין מספר דיירים תקין, לפחות 1.");
   }
 
   if (!Number.isFinite(vatRate)) {
@@ -995,7 +1009,7 @@ function calculateBill(fields) {
 
   const consumptionRaw = currentReading - previousReading;
   const usageCostRaw = consumptionRaw * convertAgorotToShekels(pricePerKwhAgorot);
-  const relativeFixedShareRaw = (fixedCharge + powerCharge) / 2;
+  const relativeFixedShareRaw = (fixedCharge + powerCharge) / tenantCount;
   const subtotalRaw = usageCostRaw + relativeFixedShareRaw;
   const vatAmountRaw = subtotalRaw * (vatRate / 100);
   const totalDueRaw = subtotalRaw + vatAmountRaw;
@@ -1021,12 +1035,13 @@ function calculateBill(fields) {
 function getRelativeFixedSharePreview(fields) {
   const fixedCharge = parseInputNumber(fields.fixedCharge);
   const powerCharge = parseInputNumber(fields.powerCharge);
+  const tenantCount = parseInputNumber(fields.tenantCount);
 
-  if (!Number.isFinite(fixedCharge) || !Number.isFinite(powerCharge)) {
+  if (!Number.isFinite(fixedCharge) || !Number.isFinite(powerCharge) || !Number.isFinite(tenantCount) || tenantCount < 1) {
     return "";
   }
 
-  return formatCurrency((fixedCharge + powerCharge) / 2);
+  return formatCurrency((fixedCharge + powerCharge) / tenantCount);
 }
 
 function getConsumptionPreview(fields) {
